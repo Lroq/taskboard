@@ -1,3 +1,4 @@
 .gitlab/
 /k8s/monitoring/monitoring.yml
 .DS_Store
+node_modules/
