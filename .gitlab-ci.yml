@@ -1,0 +1,71 @@
+stages:
+  - build
+  - test
+  - scan
+
+variables:
+  NODE_VERSION: "20"   
+
+workflow:
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
+build:
+  stage: build
+  image: node:${NODE_VERSION}
+  cache:
+    key:
+      files:
+        - package-lock.jso
+    paths:
+      - node_modules/
+  script:
+    - npm ci
+    # Lance le build seulement si un script "build" existe dans package.json
+    - npm run build --if-present
+  artifacts:
+    paths:
+      - node_modules/
+    expire_in: 1 hour
+  rules:
+    # Ne se lance que si ces fichiers change
+    - changes:
+        - .gitlab-ci.yml
+        - src/**/*
+        - package.json
+        - package-lock.json
+
+# xe job va se lancer que si le precedent a reussis donc l build 
+test:
+  stage: test
+  image: node:${NODE_VERSION}
+  needs:
+    - build
+  script:
+    - npm test
+  rules:
+    - changes:
+        - .gitlab-ci.yml
+        - src/**/*
+        - package.json
+        - package-lock.json
+
+scan:
+  stage: scan
+  image:
+    name: aquasec/trivy:latest   # image trivy pour scan les CVE
+    entrypoint: [""]
+  needs:
+    - test
+  script:
+    # fs = scan du filesystem (code source + dependances), pas une image Docker
+    # --severity CRITICAL = ne remonte/bloque que sur les CVE critiques (ajoute ",HIGH" si tu veux etre plus strict)
+    # --exit-code 1 = renvoie un code d'erreur si une CVE est trouvee -> fait echouer le job, donc tout le pipeline
+    # --ignore-unfixed = ignore les CVE qui n'ont pas encore de correctif disponible
+    - trivy fs --exit-code 1 --severity CRITICAL --ignore-unfixed .
+  rules:
+    - changes:
+        - .gitlab-ci.yml
+        - src/**/*
+        - package.json
+        - package-lock.json

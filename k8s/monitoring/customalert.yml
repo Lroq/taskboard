@@ -1,0 +1,32 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule # regle d'alerte pour prometheus
+metadata:
+  name: taskboard-alerts
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack # label pour identifier les ressources
+spec:
+  groups:
+    - name: taskboard_alerts
+
+      # alerte si node_exporter est down
+      rules:
+        - alert: NodeExporterDown
+          expr: up{job="node-exporter"} == 0
+          for: 30s
+          labels:
+            severity: critical
+          annotations:
+            summary: "node_exporter est DOWN"
+            description: "Les metriques systeme ne sont plus collectees."
+
+        # alerte si l'utilisation de la memoire est elevee
+        - alert: HighMemoryUsage
+          expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 80
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Utilisation memoire elevee"
+            description: "La RAM depasse 80% depuis plus d'1 minute."
+            

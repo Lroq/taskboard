@@ -1,0 +1,29 @@
+# Partie C : HorizontalPodAutoscaler — mise à l'échelle automatique du backend
+# Prérequis :
+#   - resources.requests définis sur le backend (Partie B) ✓
+#   - metrics-server installé dans le cluster
+#     (Docker Desktop l'inclut généralement ; sinon :
+#      kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml)
+#
+# Comportement :
+#   - si CPU moy. > 70 % → Kubernetes ajoute des replicas (jusqu'à 10)
+#   - si CPU moy. < 70 % → Kubernetes réduit les replicas (minimum 2)
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: backend-hpa
+  namespace: taskboard
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: backend
+  minReplicas: 2   # jamais moins que le nombre initial (haute dispo)
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70  # seuil en % de requests.cpu

@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: taskboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: taskboard-web:1.0.0
+          imagePullPolicy: IfNotPresent  # évite ErrImagePull avec les images locales
+          ports:
+            - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: taskboard
+spec:
+  type: ClusterIP
+  selector:
+    app: frontend
+  ports:
+    - port: 80          # port d'accès au service (utilisé par l'Ingress)
+      targetPort: 8080  # port d'écoute du conteneur serve

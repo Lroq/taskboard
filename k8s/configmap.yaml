@@ -1,0 +1,35 @@
+# Variables non sensibles de l'application
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: taskboard-config
+  namespace: taskboard
+data:
+  PORT: "3000"
+  DB_HOST: "db"       # correspond au nom du Service ClusterIP PostgreSQL
+  DB_PORT: "5432"
+  DB_NAME: "taskboard"
+  DB_USER: "taskboard_user"
+---
+# Script d'initialisation de la base de données
+# Monté dans /docker-entrypoint-initdb.d/ du conteneur postgres
+# Exécuté automatiquement au premier démarrage (data directory vide)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init
+  namespace: taskboard
+data:
+  init.sql: |
+    CREATE TABLE IF NOT EXISTS tasks (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(120) NOT NULL,
+        description TEXT DEFAULT '',
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    INSERT INTO tasks (title, description)
+    VALUES
+        ('Préparer le Dockerfile backend', 'Utiliser une image Node légère'),
+        ('Créer le docker-compose.yml', 'Relier frontend, backend et PostgreSQL'),
+        ('Ajouter un volume nommé', 'Conserver les données PostgreSQL');

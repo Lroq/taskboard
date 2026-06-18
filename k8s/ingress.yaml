@@ -1,0 +1,36 @@
+# Partie C : Ingress — point d'entrée unique pour le cluster
+# Prérequis : nginx-ingress controller installé
+#   kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
+#
+# Accès après déploiement :
+#   http://localhost/       → frontend
+#   http://localhost/api/   → backend (préfixe /api/ supprimé par la réécriture)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: taskboard-ingress
+  namespace: taskboard
+  annotations:
+    # Réécrit /api/tasks → /tasks, /api/health → /health, etc.
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          # /api/ et tout ce qui suit → backend (le /$2 supprime le préfixe /api)
+          - path: /api(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 3000
+          # / → frontend (statique)
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
